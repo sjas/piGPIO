@@ -37,15 +37,14 @@ void *checkRunning(void *arg)
     for(;;)
     {
         if(digitalRead(inpin)==0)
+        {
             running = !running;
-
-        delay(5);
+            delay(500);
+        }
+        delay(50);
     }
     return NULL;
-
 }
-
-
 
 void init(void)
 {
@@ -66,14 +65,14 @@ int main()
     printf("Setup...");
     fflush(stdout);
 
-
     pinMode(outpin, OUTPUT);
     pinMode(inpin, INPUT);
 
-    printf("Creating blink thread\n");
-
     pthread_t blink, interrupt;
+
+    printf("Creating blink thread\n");
     pthread_create(&blink,NULL,threadFunc,"blink");
+    printf("Creating interrupt thread\n");
     pthread_create(&interrupt,NULL,checkRunning,"interrupt");
 
     for(;;)
@@ -82,7 +81,5 @@ int main()
         delay(500);
     }
     digitalWrite(outpin,0);
-    //pthread_join(pth, NULL);
-
     return 0;
 }
