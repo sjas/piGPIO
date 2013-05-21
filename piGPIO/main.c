@@ -4,27 +4,45 @@
 #include <wiringPi.h>
 #include <pthread.h>
 
+static int inpin=8;
+static int outpin=0;
+
+static volatile bool running = true;
+
 void *threadFunc(void *arg)
 {
-    int outpin=0;
     for(;;)
     {
-        printf("LED on\n");
-        digitalWrite(outpin, 1);
-        delay(500);
-        printf("LED off \n");
-        digitalWrite(outpin,0);
-        delay(500);
+        if(running)
+        {
+            printf("LED on\n");
+            digitalWrite(outpin, 1);
+            delay(500);
+            printf("LED off \n");
+            digitalWrite(outpin,0);
+            delay(500);
+        }
+        else
+        {
+            digitalWrite(outpin,0);
+            delay(500);
+        }
     }
+    digitalWrite(outpin,0);
     return NULL;
 }
 
-bool checkRunning(int inpin)
+void *checkRunning(void *arg)
 {
-    if(digitalRead(inpin)==0)
-        return false;
-    else
-        return true;
+    for(;;)
+    {
+        if(digitalRead(inpin)==0)
+            running = !running;
+
+        delay(5);
+    }
+    return NULL;
+
 }
 
 
@@ -48,25 +66,22 @@ int main()
     printf("Setup...");
     fflush(stdout);
 
-    int pin=0;
-    int inpin =8;
 
-    pinMode(pin, OUTPUT);
+    pinMode(outpin, OUTPUT);
     pinMode(inpin, INPUT);
 
     printf("Creating blink thread\n");
 
-    pthread_t pth;
-    pthread_create(&pth,NULL,threadFunc,"blink");
+    pthread_t blink, interrupt;
+    pthread_create(&blink,NULL,threadFunc,"blink");
+    pthread_create(&interrupt,NULL,checkRunning,"interrupt");
 
     for(;;)
     {
-        if(checkRunning(inpin)==false)
-        {
-            pthread_cancel(pth);
-            break;
-        }
+        printf("Running: %d\n", running);
+        delay(500);
     }
+    digitalWrite(outpin,0);
     //pthread_join(pth, NULL);
 
     return 0;
