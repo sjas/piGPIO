@@ -3,17 +3,24 @@
 #include <stdbool.h>
 #include <wiringPi.h>
 #include <pthread.h>
+#include <signal.h>
 
 static int inpin=8;
 static int outpin=0;
 
-static volatile bool running = true;
+static volatile bool blinking = true, running=true;
+
+void my_handler (int sig)
+{
+  printf("Exiting");
+  running=false;
+}
 
 void *threadFunc(void *arg)
 {
     for(;;)
     {
-        if(running)
+        if(blinking)
         {
             printf("LED on\n");
             digitalWrite(outpin, 1);
@@ -38,7 +45,7 @@ void *checkRunning(void *arg)
     {
         if(digitalRead(inpin)==0)
         {
-            running = !running;
+            blinking = !blinking;
             delay(500);
         }
         delay(50);
@@ -60,6 +67,9 @@ void init(void)
 
 int main()
 {
+    signal (SIGQUIT, my_handler);
+    signal (SIGINT, my_handler);
+
     init();
 
     printf("Setup...");
@@ -75,9 +85,9 @@ int main()
     printf("Creating interrupt thread\n");
     pthread_create(&interrupt,NULL,checkRunning,"interrupt");
 
-    for(;;)
+    while(running)
     {
-        printf("Running: %d\n", running);
+        printf("Running: %d\n", blinking);
         delay(500);
     }
     digitalWrite(outpin,0);
